@@ -8,9 +8,9 @@
     <style>
         body { background-color: #f0f2f5; }
         .container { margin-top: 50px; max-width: 900px; }
-        .textarea-container { position: relative; } /* Needed for counter positioning */
+        .textarea-container { position: relative; }
         .textarea-box { height: 200px; font-family: monospace; }
-        .proxy-counter { /* Style for the line counter */
+        .proxy-counter {
             position: absolute;
             right: 15px;
             bottom: 10px;
@@ -20,11 +20,11 @@
             padding: 2px 5px;
             border-radius: 3px;
         }
-        .counter-error { color: #dc3545; font-weight: bold; } /* Red for over limit */
-        .counter-ok { color: #198754; } /* Green for within limit */
+        .counter-error { color: #dc3545; font-weight: bold; }
+        .counter-ok { color: #198754; }
         .table { font-size: 0.9rem; }
         .table td, .table th { vertical-align: middle; }
-        .proxy-col { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace;}
+        .proxy-col { max-width: 350px; /* Slightly wider */ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace;}
         .ip-col { font-family: monospace; }
         .copy-btn { cursor: pointer; color: #0d6efd; margin-left: 8px; }
         .copy-btn:hover { color: #0a58ca; }
@@ -54,7 +54,8 @@
                 <div class="textarea-container">
                     <textarea name="proxytext" id="proxytext" class="form-control textarea-box"
                               placeholder="Paste proxies here (one per line, format: host:port:user:pass)..."
-                              oninput="updateProxyCounter(this)"></textarea> <div class="proxy-counter" id="proxyCounter">0/{{ max_paste }}</div>
+                              oninput="updateProxyCounter(this)"></textarea>
+                    <div class="proxy-counter" id="proxyCounter">0/{{ max_paste }}</div>
                 </div>
             </div>
             <button type="submit" id="submitBtn" class="btn btn-primary w-100">Extract IPs</button>
@@ -63,7 +64,7 @@
         {% if results %}
         <hr>
         <h5 class="mt-4">📋 Extracted IPs Table</h5>
-        <p>Click the <i class="fas fa-copy copy-btn"></i> icon to copy. Click the link to check on Scamalytics.</p>
+        <p>Click the <i class="fas fa-copy copy-btn"></i> icon to copy the **Proxy**. Click the link to check the **Real IP** on Scamalytics.</p>
 
         <div class="table-responsive">
             <table class="table table-striped table-hover">
@@ -84,9 +85,7 @@
                         </td>
                         <td class="ip-col">
                             {{ item.ip }}
-                            <i class="fas fa-copy copy-btn" onclick="copyToClipboard('{{ item.ip }}', this)"></i>
-                            <span class="copy-success"></span>
-                        </td>
+                            </td>
                         <td>
                             <a href="https://scamalytics.com/ip/{{ item.ip }}"
                                target="_blank"
@@ -105,12 +104,12 @@
     </div>
 
     <script>
-        const MAX_LINES = {{ max_paste }}; // Get max lines from Flask
+        const MAX_LINES = {{ max_paste }};
 
         document.addEventListener('DOMContentLoaded', (event) => {
             const textarea = document.getElementById('proxytext');
             if (textarea) {
-                updateProxyCounter(textarea); // Initial check
+                updateProxyCounter(textarea);
             }
             const fileInput = document.getElementById('proxyfile');
              if(fileInput) {
@@ -118,8 +117,6 @@
                      if (this.files && this.files.length > 0) {
                          textarea.value = '';
                          updateProxyCounter(textarea);
-                         // Optional: You might want to also check file lines here if needed
-                         // For now, it just clears the text area
                      }
                  });
              }
@@ -140,7 +137,6 @@
             } else {
                 counterElement.classList.remove('counter-error');
                 counterElement.classList.add('counter-ok');
-                // Enable button only if there's *some* input or a file selected
                  const fileInput = document.getElementById('proxyfile');
                 submitButton.disabled = !(count > 0 || (fileInput && fileInput.files.length > 0));
             }
@@ -150,8 +146,9 @@
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const successSpan = iconElement.nextElementSibling;
                 if (successSpan && successSpan.classList.contains('copy-success')) {
-                    const otherSpans = iconElement.closest('tr').querySelectorAll('.copy-success');
-                    otherSpans.forEach(span => span.textContent = '');
+                    // Clear other potential "Copied!" messages in the same row before showing new one
+                    const currentSpans = iconElement.closest('td').querySelectorAll('.copy-success');
+                    currentSpans.forEach(span => span.textContent = '');
                     successSpan.textContent = 'Copied!';
                     setTimeout(() => { successSpan.textContent = ''; }, 1500);
                 }
