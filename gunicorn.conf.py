@@ -21,4 +21,4 @@ errorlog = "-"   # Log errors to stdout
 loglevel = "info" # Gunicorn log level
 
 # Keep alive connections
-keepalive = 5
+keepalive = 50
