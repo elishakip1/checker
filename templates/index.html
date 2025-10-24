@@ -24,7 +24,8 @@
         .counter-ok { color: #198754; }
         .table { font-size: 0.9rem; }
         .table td, .table th { vertical-align: middle; }
-        .proxy-col { max-width: 350px; /* Slightly wider */ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace;}
+        /* Make proxy column slightly wider */
+        .proxy-col { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace;}
         .ip-col { font-family: monospace; }
         .copy-btn { cursor: pointer; color: #0d6efd; margin-left: 8px; }
         .copy-btn:hover { color: #0a58ca; }
@@ -104,12 +105,12 @@
     </div>
 
     <script>
-        const MAX_LINES = {{ max_paste }};
+        const MAX_LINES = {{ max_paste }}; // Get max lines from Flask
 
         document.addEventListener('DOMContentLoaded', (event) => {
             const textarea = document.getElementById('proxytext');
             if (textarea) {
-                updateProxyCounter(textarea);
+                updateProxyCounter(textarea); // Initial check
             }
             const fileInput = document.getElementById('proxyfile');
              if(fileInput) {
@@ -146,7 +147,7 @@
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const successSpan = iconElement.nextElementSibling;
                 if (successSpan && successSpan.classList.contains('copy-success')) {
-                    // Clear other potential "Copied!" messages in the same row before showing new one
+                    // Clear other potential "Copied!" messages in the same cell before showing new one
                     const currentSpans = iconElement.closest('td').querySelectorAll('.copy-success');
                     currentSpans.forEach(span => span.textContent = '');
                     successSpan.textContent = 'Copied!';
