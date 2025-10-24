@@ -24,8 +24,7 @@
         .counter-ok { color: #198754; }
         .table { font-size: 0.9rem; }
         .table td, .table th { vertical-align: middle; }
-        /* Make proxy column slightly wider */
-        .proxy-col { max-width: 400px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace;}
+        .proxy-col { max-width: 400px; /* Adjusted width */ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace;}
         .ip-col { font-family: monospace; }
         .copy-btn { cursor: pointer; color: #0d6efd; margin-left: 8px; }
         .copy-btn:hover { color: #0a58ca; }
@@ -105,12 +104,12 @@
     </div>
 
     <script>
-        const MAX_LINES = {{ max_paste }}; // Get max lines from Flask
+        const MAX_LINES = {{ max_paste }};
 
         document.addEventListener('DOMContentLoaded', (event) => {
             const textarea = document.getElementById('proxytext');
             if (textarea) {
-                updateProxyCounter(textarea); // Initial check
+                updateProxyCounter(textarea);
             }
             const fileInput = document.getElementById('proxyfile');
              if(fileInput) {
@@ -139,6 +138,7 @@
                 counterElement.classList.remove('counter-error');
                 counterElement.classList.add('counter-ok');
                  const fileInput = document.getElementById('proxyfile');
+                // Enable button only if there's text OR a file selected
                 submitButton.disabled = !(count > 0 || (fileInput && fileInput.files.length > 0));
             }
         }
@@ -147,12 +147,13 @@
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const successSpan = iconElement.nextElementSibling;
                 if (successSpan && successSpan.classList.contains('copy-success')) {
-                    // Clear other potential "Copied!" messages in the same cell before showing new one
+                    // Clear message in sibling spans within the same cell if needed
                     const currentSpans = iconElement.closest('td').querySelectorAll('.copy-success');
-                    currentSpans.forEach(span => span.textContent = '');
-                    successSpan.textContent = 'Copied!';
-                    setTimeout(() => { successSpan.textContent = ''; }, 1500);
+                    currentSpans.forEach(span => span.textContent = ''); // Clear others
+                    successSpan.textContent = 'Copied!'; // Show message
+                    setTimeout(() => { successSpan.textContent = ''; }, 1500); // Clear after delay
                 }
+                // Optional visual feedback on the icon
                 iconElement.classList.remove('fa-copy');
                 iconElement.classList.add('fa-check');
                 setTimeout(() => {
