@@ -8,9 +8,8 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import logging
 from datetime import datetime
-from bs4 import BeautifulSoup
 import re
-import os # Added for template creation
+import os
 
 # Disable SSL warnings
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -35,9 +34,6 @@ DEFAULT_SETTINGS = {
 class MemoryStorage:
     def __init__(self):
         self.settings = DEFAULT_SETTINGS.copy()
-        # No longer need to store IPs on the server
-        # self.used_ips = []
-        # self.good_proxies = []
 
 
 storage = MemoryStorage()
@@ -112,7 +108,6 @@ def get_ip_from_proxy(proxy_line):
         logger.error(f"❌ Failed to get IP from proxy {proxy_line.split(':')[0]}: {e}")
         return None
 
-# This function NO LONGER checks fraud score.
 def single_check_proxy(proxy_line):
     """
     Check single proxy:
@@ -195,8 +190,6 @@ def index():
     # Pass the results to the template
     return render_template("index.html", results=results, message=message, max_paste=MAX_PASTE, settings=settings)
 
-
-# Removed all other routes like /admin, /track-used, etc. for simplicity.
 
 @app.errorhandler(404)
 def not_found(e):
@@ -288,4 +281,4 @@ if __name__ == "__main__":
     print("---")
     # Use os.environ.get("PORT", 5000) for Render compatibility
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False) # Debug=False is better for production
+    app.run(host="0.0.0.0", port=port, debug=False)
