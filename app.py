@@ -26,7 +26,7 @@ app = Flask(__name__)
 # Default configuration values
 DEFAULT_SETTINGS = {
     "MAX_PASTE": 150,
-    "MAX_WORKERS": 4, # Reduced for Render Pro stability
+    "MAX_WORKERS": 2, # Reduced for Render Pro stability
 }
 
 class MemoryStorage:
