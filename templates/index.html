@@ -24,11 +24,30 @@
         .counter-ok { color: #198754; }
         .table { font-size: 0.9rem; }
         .table td, .table th { vertical-align: middle; }
-        .proxy-col { max-width: 400px; /* Adjusted width */ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace;}
+
+        /* --- Updated styles for the proxy column --- */
+        .proxy-col {
+            max-width: 400px; /* Adjust width as needed */
+            font-family: monospace;
+            display: flex; /* Make the cell a flex container */
+            justify-content: space-between; /* Push text and icon apart */
+            align-items: center; /* Vertically align items */
+        }
+        .proxy-col span.proxy-text { /* New class for the text itself */
+            overflow: hidden;         /* Hide overflowing text */
+            text-overflow: ellipsis;  /* Add '...' for overflow */
+            white-space: nowrap;      /* Keep text on one line */
+            flex-grow: 1;             /* Allow text to take available space */
+            margin-right: 5px;       /* Add space before the icon */
+        }
+        /* --- End updated styles --- */
+
         .ip-col { font-family: monospace; }
-        .copy-btn { cursor: pointer; color: #0d6efd; margin-left: 8px; }
+        /* Adjusted copy button styles */
+        .copy-btn { cursor: pointer; color: #0d6efd; margin-left: 8px; flex-shrink: 0; /* Prevent icon from shrinking */}
         .copy-btn:hover { color: #0a58ca; }
-        .copy-success { color: #198754; margin-left: 5px; font-size: 0.8em;}
+        .copy-success { color: #198754; margin-left: 5px; font-size: 0.8em; flex-shrink: 0;} /* Prevent message from shrinking */
+
         .scamalytics-link { text-decoration: none; font-weight: bold; }
         .scamalytics-link:hover { text-decoration: underline; }
         .checked-row { background-color: #e9f5e9 !important; }
@@ -79,7 +98,7 @@
                     {% for item in results %}
                     <tr id="row-{{ loop.index }}">
                         <td class="proxy-col" title="{{ item.proxy }}">
-                            {{ item.proxy }}
+                            <span class="proxy-text">{{ item.proxy }}</span>
                             <i class="fas fa-copy copy-btn" onclick="copyToClipboard('{{ item.proxy }}', this)"></i>
                             <span class="copy-success"></span>
                         </td>
@@ -138,7 +157,6 @@
                 counterElement.classList.remove('counter-error');
                 counterElement.classList.add('counter-ok');
                  const fileInput = document.getElementById('proxyfile');
-                // Enable button only if there's text OR a file selected
                 submitButton.disabled = !(count > 0 || (fileInput && fileInput.files.length > 0));
             }
         }
@@ -147,13 +165,11 @@
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const successSpan = iconElement.nextElementSibling;
                 if (successSpan && successSpan.classList.contains('copy-success')) {
-                    // Clear message in sibling spans within the same cell if needed
                     const currentSpans = iconElement.closest('td').querySelectorAll('.copy-success');
-                    currentSpans.forEach(span => span.textContent = ''); // Clear others
-                    successSpan.textContent = 'Copied!'; // Show message
-                    setTimeout(() => { successSpan.textContent = ''; }, 1500); // Clear after delay
+                    currentSpans.forEach(span => span.textContent = '');
+                    successSpan.textContent = 'Copied!';
+                    setTimeout(() => { successSpan.textContent = ''; }, 1500);
                 }
-                // Optional visual feedback on the icon
                 iconElement.classList.remove('fa-copy');
                 iconElement.classList.add('fa-check');
                 setTimeout(() => {
