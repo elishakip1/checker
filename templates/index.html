@@ -7,8 +7,21 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
         body { background-color: #f0f2f5; }
-        .container { margin-top: 50px; max-width: 900px; } /* Wider container */
+        .container { margin-top: 50px; max-width: 900px; }
+        .textarea-container { position: relative; } /* Needed for counter positioning */
         .textarea-box { height: 200px; font-family: monospace; }
+        .proxy-counter { /* Style for the line counter */
+            position: absolute;
+            right: 15px;
+            bottom: 10px;
+            font-size: 0.85rem;
+            color: #6c757d;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 2px 5px;
+            border-radius: 3px;
+        }
+        .counter-error { color: #dc3545; font-weight: bold; } /* Red for over limit */
+        .counter-ok { color: #198754; } /* Green for within limit */
         .table { font-size: 0.9rem; }
         .table td, .table th { vertical-align: middle; }
         .proxy-col { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: monospace;}
@@ -18,14 +31,8 @@
         .copy-success { color: #198754; margin-left: 5px; font-size: 0.8em;}
         .scamalytics-link { text-decoration: none; font-weight: bold; }
         .scamalytics-link:hover { text-decoration: underline; }
-        .checked-row { background-color: #e9f5e9 !important; } /* Light green background for checked rows */
-        .checked-badge { 
-            font-size: 0.75em; 
-            font-weight: bold; 
-            color: #198754; 
-            margin-left: 10px;
-            vertical-align: middle;
-        }
+        .checked-row { background-color: #e9f5e9 !important; }
+        .checked-badge { font-size: 0.75em; font-weight: bold; color: #198754; margin-left: 10px; vertical-align: middle; }
     </style>
 </head>
 <body>
@@ -40,11 +47,14 @@
             <div class="mb-3">
                 <label for="proxyfile" class="form-label">Upload Proxy File</label>
                 <input type="file" class="form-control" name="proxyfile" id="proxyfile">
+                 <small class="form-text text-muted">Uploading a file will clear the text area.</small>
             </div>
             <div class="mb-3">
-                <label for="proxytext" class="form-label">Or Paste Proxies (max {{ max_paste }})</label>
-                <textarea name="proxytext" id="proxytext" class="form-control textarea-box"
-                          placeholder="Paste proxies here (one per line, format: host:port:user:pass)..."></textarea>
+                <label for="proxytext" class="form-label">Or Paste Proxies</label>
+                <div class="textarea-container">
+                    <textarea name="proxytext" id="proxytext" class="form-control textarea-box"
+                              placeholder="Paste proxies here (one per line, format: host:port:user:pass)..."
+                              oninput="updateProxyCounter(this)"></textarea> <div class="proxy-counter" id="proxyCounter">0/{{ max_paste }}</div> </div>
             </div>
             <button type="submit" id="submitBtn" class="btn btn-primary w-100">Extract IPs</button>
         </form>
@@ -94,18 +104,58 @@
     </div>
 
     <script>
+        const MAX_LINES = {{ max_paste }}; // Get max lines from Flask
+
+        // Initialize counter on page load
+        document.addEventListener('DOMContentLoaded', (event) => {
+            const textarea = document.getElementById('proxytext');
+            if (textarea) {
+                updateProxyCounter(textarea); // Update based on any initial content (e.g., browser cache)
+            }
+             // Clear textarea if file is selected
+            const fileInput = document.getElementById('proxyfile');
+             if(fileInput) {
+                 fileInput.addEventListener('change', function() {
+                     if (this.files && this.files.length > 0) {
+                         textarea.value = ''; // Clear text area
+                         updateProxyCounter(textarea); // Reset counter
+                     }
+                 });
+             }
+        });
+
+        function updateProxyCounter(textarea) {
+            // Split by newline, filter out empty lines
+            const lines = textarea.value.split('\n').filter(line => line.trim() !== '');
+            const count = lines.length;
+            const counterElement = document.getElementById('proxyCounter');
+            const submitButton = document.getElementById('submitBtn');
+
+            counterElement.textContent = `${count}/${MAX_LINES}`;
+
+            if (count > MAX_LINES) {
+                counterElement.classList.add('counter-error');
+                counterElement.classList.remove('counter-ok');
+                submitButton.disabled = true; // Disable submit button
+            } else {
+                counterElement.classList.remove('counter-error');
+                counterElement.classList.add('counter-ok');
+                submitButton.disabled = false; // Enable submit button
+            }
+        }
+
         function copyToClipboard(textToCopy, iconElement) {
             navigator.clipboard.writeText(textToCopy).then(() => {
-                // Indicate success visually next to the icon
-                const successSpan = iconElement.nextElementSibling; // Get the span next to the icon
+                const successSpan = iconElement.nextElementSibling; 
                 if (successSpan && successSpan.classList.contains('copy-success')) {
+                    // Clear other potential "Copied!" messages in the same row
+                    const otherSpans = iconElement.closest('tr').querySelectorAll('.copy-success');
+                    otherSpans.forEach(span => span.textContent = '');
+                    // Show success message
                     successSpan.textContent = 'Copied!';
-                    // Remove the message after a short delay
-                    setTimeout(() => {
-                        successSpan.textContent = '';
-                    }, 1500); 
+                    setTimeout(() => { successSpan.textContent = ''; }, 1500); 
                 }
-                // Optional: change icon briefly
+                // Optional: icon change
                 iconElement.classList.remove('fa-copy');
                 iconElement.classList.add('fa-check');
                 setTimeout(() => {
@@ -117,9 +167,7 @@
                 const successSpan = iconElement.nextElementSibling;
                  if (successSpan && successSpan.classList.contains('copy-success')) {
                     successSpan.textContent = 'Error!';
-                     setTimeout(() => {
-                        successSpan.textContent = '';
-                    }, 1500);
+                     setTimeout(() => { successSpan.textContent = ''; }, 1500);
                 }
             });
         }
@@ -130,7 +178,7 @@
                 row.classList.add('checked-row');
                 const badge = row.querySelector('.checked-badge');
                 if (badge) {
-                    badge.style.display = 'inline'; // Show the checked badge
+                    badge.style.display = 'inline'; 
                 }
             }
         }
