@@ -26,7 +26,7 @@ app = Flask(__name__)
 # Default configuration values
 DEFAULT_SETTINGS = {
     "MAX_PASTE": 150,
-    "MAX_WORKERS": 4, # Keep this low for Render's free plan
+    "MAX_WORKERS": 4, # Reduced for Render Pro stability
 }
 
 class MemoryStorage:
@@ -42,8 +42,9 @@ USER_AGENTS = [
 ]
 
 REQUEST_TIMEOUT = 15
-MIN_DELAY = 0.3
-MAX_DELAY = 1.0
+# Increased delays slightly
+MIN_DELAY = 0.5
+MAX_DELAY = 1.5
 
 def validate_proxy_format(proxy_line):
     try:
@@ -60,37 +61,36 @@ def get_ip_from_proxy(proxy_line):
     if not validate_proxy_format(proxy_line):
         logger.warning(f"❌ Invalid format for IP check: {proxy_line.split(':')[0]}")
         return None
-        
+
     try:
         host, port, user, pw = proxy_line.strip().split(":")
         proxies = {
             "http": f"http://{user}:{pw}@{host}:{port}",
             "https": f"http://{user}:{pw}@{host}:{port}",
         }
-        
+
         session = requests.Session()
         retries = Retry(
-            total=2, 
+            total=2,
             backoff_factor=0.3,
             status_forcelist=[500, 502, 503, 504]
         )
         session.mount('http://', HTTPAdapter(max_retries=retries))
         session.mount('https://', HTTPAdapter(max_retries=retries))
-        
+
         response = session.get(
             "https://api.ipify.org",
-            proxies=proxies, 
+            proxies=proxies,
             timeout=REQUEST_TIMEOUT,
             headers={"User-Agent": random.choice(USER_AGENTS)},
-            verify=False 
+            verify=False
         )
 
         if response.status_code == 200:
             ip = response.text.strip()
             if ip and '.' in ip and 7 <= len(ip) <= 15:
                 logger.info(f"✅ Got IP: {ip} from proxy {host}")
-                # Return the original proxy string AND the IP
-                return {"proxy": proxy_line, "ip": ip} 
+                return {"proxy": proxy_line, "ip": ip}
             else:
                 logger.warning(f"❌ Got invalid IP '{ip}' from ipify.org")
                 return None
@@ -105,8 +105,8 @@ def single_check_proxy(proxy_line):
     time.sleep(random.uniform(MIN_DELAY, MAX_DELAY))
     if not validate_proxy_format(proxy_line):
         return None
-    ip_data = get_ip_from_proxy(proxy_line) 
-    return ip_data # Returns {"proxy": "...", "ip": "..."} or None
+    ip_data = get_ip_from_proxy(proxy_line)
+    return ip_data
 
 @app.route("/", methods=["GET", "POST"])
 def index():
@@ -114,7 +114,7 @@ def index():
     MAX_PASTE = settings["MAX_PASTE"]
     MAX_WORKERS = settings["MAX_WORKERS"]
 
-    results = [] # List of {"proxy": "...", "ip": "..."}
+    results = []
     message = ""
 
     if request.method == "POST":
@@ -122,47 +122,73 @@ def index():
         all_lines = []
         input_count = 0
 
+        # Prioritize file upload if both are present
         if 'proxyfile' in request.files and request.files['proxyfile'].filename:
             file = request.files['proxyfile']
-            all_lines = file.read().decode("utf-8").strip().splitlines()
+            all_lines = file.read().decode("utf-8", errors='ignore').strip().splitlines() # Added errors='ignore'
             input_count = len(all_lines)
-            if input_count > MAX_PASTE:
-                all_lines = all_lines[:MAX_PASTE]
-            proxies = all_lines
-        elif 'proxytext' in request.form:
+            logger.info(f"Processing {input_count} lines from file.")
+        elif 'proxytext' in request.form and request.form['proxytext'].strip():
             proxytext = request.form.get("proxytext", "")
             all_lines = proxytext.strip().splitlines()
             input_count = len(all_lines)
-            if input_count > MAX_PASTE:
-                all_lines = all_lines[:MAX_PASTE]
-            proxies = all_lines
+            logger.info(f"Processing {input_count} lines from text area.")
+        else:
+             logger.info("No proxy input provided.")
+
+
+        # Apply MAX_PASTE limit regardless of source
+        if input_count > MAX_PASTE:
+            logger.warning(f"Input truncated from {input_count} to {MAX_PASTE} lines.")
+            all_lines = all_lines[:MAX_PASTE]
+        proxies = all_lines
+
 
         valid_proxies = []
+        invalid_format_count = 0
         for proxy in proxies:
             proxy = proxy.strip()
-            if proxy and validate_proxy_format(proxy):
-                valid_proxies.append(proxy)
+            if proxy: # Ensure not an empty line after stripping
+                if validate_proxy_format(proxy):
+                    valid_proxies.append(proxy)
+                else:
+                    invalid_format_count += 1
 
         processed_count = len(valid_proxies)
+        if invalid_format_count > 0:
+             logger.warning(f"Skipped {invalid_format_count} lines due to invalid format.")
+
 
         if valid_proxies:
-            logger.info(f"🔄 Extracting IPs from {len(valid_proxies)} valid proxies...")
+            logger.info(f"🔄 Extracting IPs from {processed_count} valid proxies using {MAX_WORKERS} workers...")
 
             with ThreadPoolExecutor(max_workers=MAX_WORKERS) as executor:
                 futures = [executor.submit(single_check_proxy, proxy) for proxy in valid_proxies]
+                completed_count = 0
                 for future in as_completed(futures):
-                    result = future.result() 
+                    result = future.result()
+                    completed_count += 1
                     if result:
                         results.append(result)
+                    if completed_count % 10 == 0: # Log progress every 10 proxies
+                        logger.info(f"Progress: {completed_count}/{processed_count} processed...")
+
 
             if results:
-                message = f"✅ Extracted {len(results)} IPs. See the table below."
+                message = f"✅ Extracted {len(results)} IPs from {processed_count} valid proxies. See the table below."
+                if invalid_format_count > 0:
+                    message += f" ({invalid_format_count} lines skipped due to invalid format)."
                 logger.info(f"🎉 Final result: {len(results)} IPs extracted!")
             else:
-                message = f"⚠️ Processed {processed_count} proxies, but could not extract any IPs."
+                message = f"⚠️ Processed {processed_count} valid proxies, but could not extract any IPs."
+                if invalid_format_count > 0:
+                    message += f" ({invalid_format_count} lines skipped due to invalid format)."
                 logger.warning(f"😞 No IPs extracted from {processed_count} valid proxies")
+        elif input_count > 0:
+             message = f"❌ Submitted {input_count} lines, but none had the valid format: host:port:user:pass"
         else:
-            message = f"❌ No valid proxies found. Required format: host:port:username:password"
+            message = "No proxies submitted."
+
 
     return render_template("index.html", results=results, message=message, max_paste=MAX_PASTE, settings=settings)
 
@@ -172,23 +198,26 @@ def not_found(e):
 
 @app.errorhandler(500)
 def internal_error(e):
-    return f"Internal server error: {str(e)}", 500
+    # Log the full error to Render logs
+    logger.exception("Internal Server Error")
+    return f"Internal server error. Check the application logs for details.", 500
 
 if __name__ == "__main__":
     if not os.path.exists("templates"):
         os.makedirs("templates")
-        
+
+    # Create index.html only if it doesn't exist.
+    # IMPORTANT: Manually copy the final index.html content into templates/index.html
     if not os.path.exists("templates/index.html"):
-        # Create the initial index.html if it doesn't exist
-        # Note: You'll want to replace this with the final HTML content below
         with open("templates/index.html", "w") as f:
-            f.write("<h1>Placeholder - Replace with final index.html content</h1>") 
+            f.write("<h1>Placeholder - Please create templates/index.html with the correct content</h1>")
         print("✅ Created placeholder templates/index.html")
-    
+
     print("\n---")
     print("🚀 Starting IP Extractor on http://localhost:5000")
     print(f"📈 Max entries: {storage.settings['MAX_PASTE']}")
+    print(f"👷 Max workers: {storage.settings['MAX_WORKERS']}")
     print("---")
     port = int(os.environ.get("PORT", 5000))
-    # Set debug=False for Render, debug=True for local testing if needed
+    # Set debug=True for local testing if needed, False for Render
     app.run(host="0.0.0.0", port=port, debug=False)
