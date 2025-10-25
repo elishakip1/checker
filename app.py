@@ -33,7 +33,7 @@ app = Flask(__name__)
 # Default configuration values
 DEFAULT_SETTINGS = {
     "MAX_PASTE": 1000,
-    "MAX_WORKERS": 20,
+    "MAX_WORKERS": 30,
 }
 
 class MemoryStorage:
