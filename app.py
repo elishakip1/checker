@@ -32,7 +32,7 @@ app = Flask(__name__)
 
 # Default configuration values
 DEFAULT_SETTINGS = {
-    "MAX_PASTE": 300,
+    "MAX_PASTE": 1000,
     "MAX_WORKERS": 20,
 }
 
