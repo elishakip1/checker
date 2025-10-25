@@ -33,7 +33,7 @@ app = Flask(__name__)
 # Default configuration values
 DEFAULT_SETTINGS = {
     "MAX_PASTE": 150,
-    "MAX_WORKERS": 3, # Fallback/local value, gunicorn.conf.py overrides on Render
+    "MAX_WORKERS": 15, # Fallback/local value, gunicorn.conf.py overrides on Render
 }
 
 class MemoryStorage:
