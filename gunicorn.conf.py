@@ -5,7 +5,7 @@ import multiprocessing
 # worker_class = 'gevent' # Requires installing gevent (pip install gevent)
 
 # Number of workers
-workers = 200  # Keep low for Render stability
+workers = 35  # Keep low for Render stability
 
 # Bind address and port
 bind = "0.0.0.0:10000" # Render requires 0.0.0.0 and provides PORT
@@ -19,4 +19,4 @@ errorlog = "-"
 loglevel = "info"
 
 # Keep alive connections
-keepalive = 350
+keepalive = 50
