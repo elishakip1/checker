@@ -56,7 +56,7 @@ MAX_DELAY = 1.5
 SCOPE = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 JSON_CREDS_STR = os.getenv("GOOGLE_SERVICE_ACCOUNT_JSON")
 SHEET_NAME = "Used IPs" # Make sure this matches your Google Sheet name
-WORKSHEET_NAME = "Sheet1" # Make sure this matches your worksheet tab name
+WORKSHEET_NAME = "UsedProxies" # Make sure this matches your worksheet tab name
 IP_COLUMN_INDEX = 1 # Assuming IP is in the first column (A)
 
 _sheet_cache = None
