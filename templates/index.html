@@ -9,42 +9,35 @@
     <style>
         body { background-color: #f0f2f5; padding-top: 1rem; padding-bottom: 1rem;}
         .container { margin-top: 20px; max-width: 900px; }
-        @media (max-width: 576px) {
-            .container { padding-left: 1rem; padding-right: 1rem; margin-top: 10px;}
-        }
+        @media (max-width: 576px) { .container { padding-left: 1rem; padding-right: 1rem; margin-top: 10px;} }
         .textarea-container { position: relative; }
         .textarea-box { height: 150px; font-family: monospace; }
-        .proxy-counter {
-            position: absolute; right: 15px; bottom: 10px; font-size: 0.85rem;
-            color: #6c757d; background: rgba(255, 255, 255, 0.8);
-            padding: 2px 5px; border-radius: 3px;
-        }
+        .proxy-counter { position: absolute; right: 15px; bottom: 10px; font-size: 0.85rem; color: #6c757d; background: rgba(255, 255, 255, 0.8); padding: 2px 5px; border-radius: 3px; }
         .counter-error { color: #dc3545; font-weight: bold; }
         .counter-ok { color: #198754; }
         .table { font-size: 0.9rem; }
         .table td, .table th { vertical-align: middle; padding: 0.6rem 0.5rem;}
-        .proxy-col {
-            max-width: 400px; font-family: monospace; display: flex;
-            justify-content: space-between; align-items: center;
-        }
-        .proxy-col span.proxy-text {
-            overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-            flex-grow: 1; margin-right: 5px;
-        }
+        .proxy-col { max-width: 400px; font-family: monospace; display: flex; justify-content: space-between; align-items: center; }
+        .proxy-col span.proxy-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex-grow: 1; margin-right: 5px; }
         .ip-col { font-family: monospace; min-width: 120px;}
         .copy-btn { cursor: pointer; color: #0d6efd; margin-left: 8px; flex-shrink: 0; font-size: 1em; }
         .copy-btn.fa-check { color: #198754; cursor: default;}
         .copy-btn:hover:not(.fa-check) { color: #0a58ca; }
         .copy-success { color: #198754; margin-left: 5px; font-size: 0.8em; flex-shrink: 0;}
-        .scamalytics-link { text-decoration: none; font-weight: bold; white-space: nowrap; }
+        .scamalytics-link { text-decoration: none; font-weight: bold; white-space: nowrap; margin-right: 5px; }
         .scamalytics-link:hover { text-decoration: underline; }
+        .checked-row { background-color: #d1e7dd !important; }
+        .checked-badge { font-size: 0.75em; font-weight: bold; color: #0f5132; margin-left: 5px; vertical-align: middle; white-space: nowrap;}
         /* Style for used rows */
-        .table-secondary { background-color: #e2e3e5 !important; }
-        .text-muted { color: #6c757d !important; }
-        .badge.bg-secondary { background-color: #6c757d !important; } /* Ensure USED badge stands out */
+        .table-secondary { background-color: #e2e3e5 !important; color: #6c757d !important;}
+        .badge.bg-secondary { background-color: #6c757d !important; }
+        /* Style for bad rows */
+        .table-danger { background-color: #f8d7da !important; color: #721c24 !important; }
+        .badge.bg-danger { background-color: #dc3545 !important; color: white;}
+        /* Disable links/buttons visually */
+        .disabled-link { pointer-events: none; color: #6c757d; text-decoration: line-through;}
+        .btn-bad { margin-left: 5px; }
 
-        .checked-row { background-color: #d1e7dd !important; } /* Keep checked row distinct from used */
-        .checked-badge { font-size: 0.75em; font-weight: bold; color: #0f5132; margin-left: 10px; vertical-align: middle; white-space: nowrap;}
         .accordion-button.collapsed::after { background-image: var(--bs-accordion-btn-icon); }
         .accordion-button:not(.collapsed)::after { background-image: var(--bs-accordion-btn-active-icon); }
     </style>
@@ -67,20 +60,8 @@
                 <div id="collapseOne" class="accordion-collapse collapse {% if not results %}show{% endif %}" aria-labelledby="headingOne" data-bs-parent="#proxyInputAccordion">
                     <div class="accordion-body">
                         <form method="POST" enctype="multipart/form-data" id="proxyFormElement">
-                            <div class="mb-3">
-                                <label for="proxyfile" class="form-label">Upload Proxy File</label>
-                                <input type="file" class="form-control" name="proxyfile" id="proxyfile">
-                                 <small class="form-text text-muted">Uploading a file will clear the text area.</small>
-                            </div>
-                            <div class="mb-3">
-                                <label for="proxytext" class="form-label">Or Paste Proxies</label>
-                                <div class="textarea-container">
-                                    <textarea name="proxytext" id="proxytext" class="form-control textarea-box"
-                                              placeholder="Paste proxies here (one per line, format: host:port:user:pass)..."
-                                              oninput="updateProxyCounter(this)"></textarea>
-                                    <div class="proxy-counter" id="proxyCounter">0/{{ max_paste }}</div>
-                                </div>
-                            </div>
+                            <div class="mb-3"><label for="proxyfile" class="form-label">Upload Proxy File</label><input type="file" class="form-control" name="proxyfile" id="proxyfile"><small class="form-text text-muted">Uploading a file will clear the text area.</small></div>
+                            <div class="mb-3"><label for="proxytext" class="form-label">Or Paste Proxies</label><div class="textarea-container"><textarea name="proxytext" id="proxytext" class="form-control textarea-box" placeholder="Paste proxies here (one per line, format: host:port:user:pass)..." oninput="updateProxyCounter(this)"></textarea><div class="proxy-counter" id="proxyCounter">0/{{ max_paste }}</div></div></div>
                             <button type="submit" id="submitBtn" class="btn btn-primary w-100">Extract IPs</button>
                         </form>
                     </div>
@@ -92,7 +73,7 @@
         {% if results %}
         <hr>
         <h5 class="mt-4">📋 Extracted IPs Table</h5>
-        <p>Click the <i class="fas fa-copy copy-btn" style="color:#6c757d"></i> icon to copy the **Proxy** (logs IP as used). Click link to check **Real IP**.</p>
+        <p>Click <i class="fas fa-copy copy-btn" style="color:#6c757d"></i> to copy **Proxy** (logs IP as used). Click link to check **Real IP**. Click **BAD** to blacklist.</p>
 
         <div class="table-responsive">
             <table class="table table-striped table-hover">
@@ -100,15 +81,17 @@
                     <tr>
                         <th scope="col">Proxy</th>
                         <th scope="col">Real IP</th>
-                        <th scope="col">Scamalytics Link</th>
+                        <th scope="col">Check / Mark Bad</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for item in results %}
-                    <tr id="row-{{ loop.index }}" class="{{ 'table-secondary text-muted' if item.used else '' }}">
+                    <tr id="row-{{ loop.index }}" class="{{ 'table-danger' if item.bad else ('table-secondary text-muted' if item.used else '') }}">
                         <td class="proxy-col" title="{{ item.proxy }}">
                             <span class="proxy-text">{{ item.proxy }}</span>
-                            {% if item.used %}
+                            {% if item.bad %}
+                                <span class="badge bg-danger ms-2">BAD IP</span>
+                            {% elif item.used %}
                                 <span class="badge bg-secondary ms-2">USED</span>
                             {% else %}
                                 <i class="fas fa-copy copy-btn" onclick="copyToClipboard('{{ item.proxy }}', this)"></i>
@@ -119,13 +102,21 @@
                             {{ item.ip }}
                         </td>
                         <td>
-                            <a href="https://scamalytics.com/ip/{{ item.ip }}"
-                               target="_blank"
-                               class="scamalytics-link"
-                               onclick="markAsChecked({{ loop.index }})">
-                                Check IP: <strong>{{ item.ip }}</strong>
-                            </a>
-                            <span class="checked-badge" style="display: none;">✔ Checked</span>
+                             <a href="https://scamalytics.com/ip/{{ item.ip }}"
+                                target="_blank"
+                                class="scamalytics-link {{ 'disabled-link' if item.bad else '' }}"
+                                id="link-{{ loop.index }}"
+                                onclick="markAsChecked({{ loop.index }})">
+                                 Check IP: <strong>{{ item.ip }}</strong>
+                             </a>
+                             <span class="checked-badge" id="checked-badge-{{ loop.index }}" style="display: none;">✔ Checked</span>
+
+                             {% if not item.bad %}
+                             <button type="button" class="btn btn-outline-danger btn-sm py-0 btn-bad" id="bad-btn-{{ loop.index }}" onclick="markAsBad('{{ item.ip }}', {{ loop.index }})">
+                                 BAD
+                             </button>
+                             <span class="badge bg-danger ms-2" id="bad-badge-{{ loop.index }}" style="display: none;">BAD IP</span>
+                             {% endif %}
                         </td>
                     </tr>
                     {% endfor %}
@@ -144,14 +135,8 @@
             const textarea = document.getElementById('proxytext');
             if (textarea) { updateProxyCounter(textarea); }
             const fileInput = document.getElementById('proxyfile');
-            if(fileInput) {
-                fileInput.addEventListener('change', function() {
-                    if (this.files && this.files.length > 0) {
-                        textarea.value = ''; updateProxyCounter(textarea);
-                    }
-                });
-            }
-            resetInactivityTimer(); // Start inactivity timer
+            if(fileInput) { fileInput.addEventListener('change', function() { if (this.files && this.files.length > 0) { textarea.value = ''; updateProxyCounter(textarea); } }); }
+            resetInactivityTimer();
         });
 
         function updateProxyCounter(textarea) {
@@ -160,107 +145,135 @@
             const counterElement = document.getElementById('proxyCounter');
             const submitButton = document.getElementById('submitBtn');
             counterElement.textContent = `${count}/${MAX_LINES}`;
-            if (count > MAX_LINES) {
-                counterElement.className = 'proxy-counter counter-error';
-                submitButton.disabled = true;
-            } else {
-                counterElement.className = 'proxy-counter counter-ok';
-                const fileInput = document.getElementById('proxyfile');
-                submitButton.disabled = !(count > 0 || (fileInput && fileInput.files.length > 0));
-            }
+            if (count > MAX_LINES) { counterElement.className = 'proxy-counter counter-error'; submitButton.disabled = true; }
+            else { counterElement.className = 'proxy-counter counter-ok'; const fileInput = document.getElementById('proxyfile'); submitButton.disabled = !(count > 0 || (fileInput && fileInput.files.length > 0)); }
         }
 
         function copyToClipboard(textToCopy, iconElement) {
             if (iconElement.classList.contains('fa-check')) { return; }
-
             navigator.clipboard.writeText(textToCopy).then(() => {
                 const successSpan = iconElement.nextElementSibling;
-                if (successSpan && successSpan.classList.contains('copy-success')) {
-                    const currentSpans = iconElement.closest('td').querySelectorAll('.copy-success');
-                    currentSpans.forEach(span => span.textContent = '');
-                    successSpan.textContent = 'Copied!';
-                    // Keep message until next action or remove after delay (optional)
-                    // setTimeout(() => { successSpan.textContent = ''; }, 2000);
-                }
-                iconElement.classList.remove('fa-copy');
-                iconElement.classList.add('fa-check');
-                iconElement.onclick = null;
-                iconElement.style.cursor = 'default';
+                if (successSpan && successSpan.classList.contains('copy-success')) { successSpan.textContent = 'Copied!'; }
+                iconElement.classList.remove('fa-copy'); iconElement.classList.add('fa-check');
+                iconElement.onclick = null; iconElement.style.cursor = 'default';
 
-                // Send request to backend to log IP
-                fetch('/track-used', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ proxy: textToCopy })
-                })
+                fetch('/track-used', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ proxy: textToCopy }) })
                 .then(response => response.json())
                 .then(data => {
                     if (data.status === 'success') {
                         console.log('Successfully logged IP as used:', data.message);
-                        // Visually mark row as used immediately
                         const row = iconElement.closest('tr');
-                        if (row) {
+                        if (row && !row.classList.contains('table-danger')) { // Don't override bad style
                             row.classList.add('table-secondary', 'text-muted');
                             const td = iconElement.closest('td');
                             const usedBadge = document.createElement('span');
-                            usedBadge.className = 'badge bg-secondary ms-2';
-                            usedBadge.textContent = 'USED';
-                            iconElement.remove(); // Remove icon
-                            if(successSpan) successSpan.remove(); // Remove 'Copied!' span
-                            td.appendChild(usedBadge); // Add USED badge
+                            usedBadge.className = 'badge bg-secondary ms-2'; usedBadge.textContent = 'USED';
+                            iconElement.remove(); if(successSpan) successSpan.remove(); td.appendChild(usedBadge);
                         }
-                    } else {
-                        console.error('Failed to log IP:', data.message);
-                        // Optionally revert UI changes if logging failed
-                        iconElement.classList.remove('fa-check');
-                        iconElement.classList.add('fa-copy');
-                        iconElement.onclick = function() { copyToClipboard(textToCopy, iconElement); };
-                        iconElement.style.cursor = 'pointer';
-                        if(successSpan) successSpan.textContent = 'Log Failed!';
-                        setTimeout(() => { if(successSpan) successSpan.textContent = ''; }, 2000);
-                    }
+                    } else { throw new Error(data.message || 'Failed to log'); } // Throw error to trigger catch block
                 })
                 .catch((error) => {
-                    console.error('Error sending track request:', error);
-                    // Optionally revert UI changes on network error
-                    iconElement.classList.remove('fa-check');
-                    iconElement.classList.add('fa-copy');
-                    iconElement.onclick = function() { copyToClipboard(textToCopy, iconElement); };
-                    iconElement.style.cursor = 'pointer';
-                    if(successSpan) successSpan.textContent = 'Log Failed!';
-                    setTimeout(() => { if(successSpan) successSpan.textContent = ''; }, 2000);
+                    console.error('Failed to log IP:', error);
+                    // Revert UI on failure
+                    iconElement.classList.remove('fa-check'); iconElement.classList.add('fa-copy');
+                    iconElement.onclick = function() { copyToClipboard(textToCopy, iconElement); }; iconElement.style.cursor = 'pointer';
+                    if(successSpan) successSpan.textContent = 'Log Failed!'; setTimeout(() => { if(successSpan) successSpan.textContent = ''; }, 2000);
                 });
-
             }).catch(err => {
                 console.error('Failed to copy text: ', err);
                 const successSpan = iconElement.nextElementSibling;
-                 if (successSpan && successSpan.classList.contains('copy-success')) {
-                    successSpan.textContent = 'Copy Error!';
-                     setTimeout(() => { successSpan.textContent = ''; }, 1500);
-                }
+                if (successSpan) { successSpan.textContent = 'Copy Error!'; setTimeout(() => { successSpan.textContent = ''; }, 1500); }
             });
         }
 
         function markAsChecked(rowIndex) {
             const row = document.getElementById(`row-${rowIndex}`);
-            if (row) {
-                // Check if it's already marked as used, if so, don't override style
+            if (row && !row.classList.contains('table-danger')) { // Don't mark if bad
+                 // Check if it's already marked as used, if so, don't override style
                 if (!row.classList.contains('table-secondary')) {
-                    row.classList.add('checked-row'); // Apply only if not 'used'
+                     row.classList.add('checked-row'); // Apply only if not 'used' or 'bad'
                 }
-                const badge = row.querySelector('.checked-badge');
-                if (badge) {
-                    badge.style.display = 'inline';
-                }
+                const badge = row.querySelector(`#checked-badge-${rowIndex}`); // Use specific ID
+                if (badge) { badge.style.display = 'inline'; }
             }
-            resetInactivityTimer(); // Clicking link is activity
+            resetInactivityTimer();
         }
+
+        // --- NEW: Mark as Bad Function ---
+        function markAsBad(ipAddress, rowIndex) {
+            const badButton = document.getElementById(`bad-btn-${rowIndex}`);
+            if (!badButton || badButton.disabled) return; // Prevent double clicks
+
+            // Disable button immediately
+            badButton.disabled = true;
+            badButton.textContent = 'Logging...';
+
+            fetch('/mark-bad', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ip: ipAddress }) // Send the IP address
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log('Successfully marked IP as bad:', data.message);
+                    // Update UI permanently
+                    const row = document.getElementById(`row-${rowIndex}`);
+                    const link = document.getElementById(`link-${rowIndex}`);
+                    const checkedBadge = document.getElementById(`checked-badge-${rowIndex}`);
+                    const badBadge = document.getElementById(`bad-badge-${rowIndex}`);
+                    const proxyCell = row.querySelector('.proxy-col'); // Get the first cell
+
+                    if (row) {
+                        // Remove other styles and apply danger style
+                        row.classList.remove('table-secondary', 'text-muted', 'checked-row');
+                        row.classList.add('table-danger');
+                    }
+                    if (link) { link.classList.add('disabled-link'); } // Disable link
+                    if (checkedBadge) { checkedBadge.style.display = 'none'; } // Hide checked badge
+                    if (badButton) { badButton.style.display = 'none'; } // Hide BAD button
+                    if (badBadge) { badBadge.style.display = 'inline'; } // Show BAD badge
+
+                    // Also update the first column (Proxy) to show BAD IP badge and remove copy button if present
+                    if(proxyCell) {
+                         const copyIcon = proxyCell.querySelector('.fa-copy, .fa-check');
+                         const copySuccess = proxyCell.querySelector('.copy-success');
+                         const usedBadge = proxyCell.querySelector('.badge.bg-secondary');
+
+                         if(copyIcon) copyIcon.remove();
+                         if(copySuccess) copySuccess.remove();
+                         if(usedBadge) usedBadge.remove();
+
+                         // Add BAD IP badge if not already there
+                         if (!proxyCell.querySelector('.badge.bg-danger')) {
+                             const proxyBadBadge = document.createElement('span');
+                             proxyBadBadge.className = 'badge bg-danger ms-2';
+                             proxyBadBadge.textContent = 'BAD IP';
+                             proxyCell.appendChild(proxyBadBadge);
+                         }
+                    }
+
+                } else {
+                    throw new Error(data.message || 'Failed to log bad IP');
+                }
+            })
+            .catch((error) => {
+                console.error('Failed to mark IP as bad:', error);
+                // Re-enable button on failure
+                if(badButton) {
+                    badButton.disabled = false;
+                    badButton.textContent = 'BAD';
+                    alert('Failed to mark IP as bad. Please try again.'); // Simple user feedback
+                }
+            });
+             resetInactivityTimer(); // Marking as bad is activity
+        }
+        // --- End Mark as Bad ---
+
 
         function resetInactivityTimer() {
             clearTimeout(inactivityTimer);
-            inactivityTimer = setTimeout(() => {
-                window.location.href = '/';
-            }, timeoutDuration);
+            inactivityTimer = setTimeout(() => { window.location.href = '/'; }, timeoutDuration);
             // console.log("Inactivity timer reset.");
         }
 
